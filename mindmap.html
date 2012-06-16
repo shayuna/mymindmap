@@ -1,0 +1,277 @@
+<!DCOTYPE html>
+<html>
+<head>
+	<title>mind map</title>
+	<meta charset="windows-1255"/>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js"></script>
+	<link rel="stylesheet" href="mindmap.css" />
+</head>
+<body id="bdy">
+	<div id="clipboard">
+		<ul>
+			<li class="draggedItem"><span>text1</span></li>
+			<li class="draggedItem"><span>text2</span></li>
+			<li class="draggedItem"><span>text3</span></li>
+			<li class="draggedItem"><span>text4</span></li>
+			<li class="draggedItem"><span>should be something else and nothing matters really but you should know</span></li>
+			<li class="draggedItem"><span>text6</span></li>
+			<li class="draggedItem"><span>text7</span></li>
+			<li class="draggedItem"><span>text8</span></li>
+			<li class="draggedItem"><span>text9</span></li>
+			<li class="draggedItem"><span>text10</span></li>
+			<li class="draggedItem"><span>text11</span></li>
+			<li class="draggedItem"><span>text12</span></li>
+			<li class="draggedItem"><span>text13</span></li>
+			<li class="draggedItem"><span>text14</span></li>
+			<li class="draggedItem"><span>text15</span></li>
+			<li class="draggedItem"><span>text16</span></li>
+			<li class="draggedItem"><span>text17</span></li>
+			<li class="draggedItem"><span>text18</span></li>
+			<li class="draggedItem"><span>text19</span></li>
+		</ul>
+	</div>
+</body>
+<script>
+//test remark. to test github123
+	var svg=document.createElementNS("http://www.w3.org/2000/svg","svg"),nodesAr=[],connectionsAr=[];
+	var node = function(iID){
+		this.iID=iID;
+		this.connectionsAr=[];
+	}
+	var pointInNode = function(iID,iLeft,iTop){
+		node.apply(this,[iID]);
+		this.iLeft=iLeft;
+		this.iTop=iTop;
+	}
+	var connection = function(point1,point2,lineID){
+		this.point1=point1;
+		this.point2=point2;
+		this.lineID=lineID;
+	}
+	
+	$(document).ready(function(){
+		setRect(0,0);
+		$(svg).css("background-color","#fafafa");
+		$(svg).css("width","100%");
+		$(svg).css("height","100%");
+		$(svg).css("position","absolute");
+		$(svg).css("top","0");
+		$(svg).css("left","0");
+		
+	
+		$(svg).appendTo("body");
+
+//		var iDocH=document.documentElement.clientHeight;
+	//	var iClipboardHeight=$("#clipboard").outerHeight(true);
+		//$("#clipboard").css("top",iDocH-iClipboardHeight);
+
+		$(".draggedItem span").draggable({
+			containment:"document",
+			cursor:"move",
+			helper:makeCopy,
+			appendTo:"body",
+			drag:redrawConnections,
+			start:startDrag,
+			stop:stopDrag
+		});
+
+		$(".draggedItem").draggable({
+			containment:"document",
+			cursor:"move",
+			helper:makeDot,
+			drag:drawDot,
+			stop:drawLine,
+		});
+		$(".draggedItem").draggable("option","cursorAt",{left:-15,top:-2});
+
+		$(".draggedItem").each(function(ii,obj){
+			$(obj).data("iID",ii);
+			obj.id=ii;
+			var oNode=new node(ii);
+			nodesAr[ii]=oNode;
+		});
+	});
+	function startDrag(event,ui){
+		$(this.parentElement).addClass("hideMe");
+	}
+	function redrawConnections(event,ui){
+		var iID=$(this.parentElement).data("iID"),oNode=nodesAr[iID];
+		if (ui.offset.left+200>$(svg).width()){
+			setRect(500,0);
+		}
+		
+		redrawLines(iID,ui.offset.top,ui.offset.left);
+
+	}
+	function redrawLines(iID,pointTop,pointLeft){
+
+		jQuery.each(nodesAr[iID].connectionsAr,function (ii,obj){
+			var x1=$("#"+obj.point1.iID).offset().left+obj.point1.iLeft,y1=$("#"+obj.point1.iID).offset().top+obj.point1.iTop;
+			var x2=$("#"+obj.point2.iID).offset().left+obj.point2.iLeft,y2=$("#"+obj.point2.iID).offset().top+obj.point2.iTop;
+			if (iID==obj.point1.iID){
+				var x1=pointLeft+obj.point1.iLeft,y1=pointTop+obj.point1.iTop;
+			}
+			else{
+				var x2=pointLeft+obj.point2.iLeft,y2=pointTop+obj.point2.iTop;
+			}
+
+			var line=$("#"+obj.lineID)[0];	
+			line.setAttribute("x1", x1);
+			line.setAttribute("y1", y1);
+			line.setAttribute("x2", x2);
+			line.setAttribute("y2", y2);
+
+/*
+			$("#"+obj.lineID).remove();
+			var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute("x1", x1);
+			line.setAttribute("y1", y1);
+			line.setAttribute("x2", x2);
+			line.setAttribute("y2", y2);
+			line.id=obj.lineID;
+			line.setAttribute("stroke-width", "4px");
+			line.setAttribute("stroke", "purple");
+			$(svg).append(line);
+*/
+		});
+		
+	}
+	function drawLine(event,ui){
+		var x1=$(".dot:first").offset().left,x2=$(".dot:last").offset().left,y1=$(".dot:first").offset().top,y2=$(".dot:last").offset().top;
+		var swToDraw=false,lineID=x1+"I"+y1+"I"+x2+"I"+y2;
+		
+		if (isIntersect(".dot:last",".draggedItem",this))swToDraw=true;
+		if (swToDraw)
+		{
+			var elm1=getElementByDot(".dot:first",".draggedItem"),xy1=[$(".dot:first").offset().left-$(elm1).offset().left,$(".dot:first").offset().top-$(elm1).offset().top];
+			var elm2=getElementByDot(".dot:last",".draggedItem"),xy2=[$(".dot:last").offset().left-$(elm2).offset().left,$(".dot:last").offset().top-$(elm2).offset().top];
+			var point1=new pointInNode($(elm1).data("iID"),xy1[0],xy1[1]);
+			var point2=new pointInNode($(elm2).data("iID"),xy2[0],xy2[1]);
+			var oConnection = new connection(point1,point2,lineID);
+			connectionsAr[connectionsAr.length]=oConnection;
+			nodesAr[$(elm1).data("iID")].connectionsAr[nodesAr[$(elm1).data("iID")].connectionsAr.length]=oConnection;
+			nodesAr[$(elm2).data("iID")].connectionsAr[nodesAr[$(elm2).data("iID")].connectionsAr.length]=oConnection;
+
+			var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+			line.setAttribute("x1", x1);
+			line.setAttribute("y1", y1);
+			line.setAttribute("x2", x2);
+			line.setAttribute("y2", y2);
+			line.id=lineID;
+			line.setAttribute("stroke-width", "4px");
+			line.setAttribute("stroke", "purple");
+		}
+		$(".dot").remove();
+		if (swToDraw)$(svg).append(line);
+	}
+	function makeDot(){
+		var elm=$("<span/>").html("Drag Me");
+		return elm;	
+	}
+	function drawDot(event,ui)
+	{
+		var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute("class", "dot"); 
+        rect.setAttribute("x", ui.offset.left);
+        rect.setAttribute("y", ui.offset.top);
+        rect.setAttribute("width", "10");
+        rect.setAttribute("height", "10");
+        rect.setAttribute("fill", "red");
+        svg.appendChild(rect);
+	}
+	function makeCopy()
+	{
+		var newElm=$("<div/>").addClass("draggedItem temp");
+		newElm.data("iID",$(this.parentElement).id);
+		newElm.append($("<span/>").html($(this).html()));
+		newElm.width($(this).width());
+		newElm.height($(this).height());
+		return newElm;
+	}
+	function stopDrag(event,ui)
+	{
+		var newElm=$("<div/>").addClass("draggedItem");
+		$(".temp").remove();
+		newElm.append($("<span/>").html($(this).html()));
+		newElm.width($(this.parentElement).width());
+		newElm.height($(this.parentElement).height());
+		console.log($(this.parentElement).width());
+		$(newElm).data("iID",$(this.parentElement).data("iID"));
+		newElm.attr("id",this.parentElement.id);
+		newElm.css("position","absolute");
+		newElm.offset({top:ui.offset.top,left:ui.offset.left});
+		$(this).parent().remove();
+		$(newElm).children("span").draggable({
+			containment:"document",
+			cursor:"move",
+			helper:makeCopy,
+			appendTo:"body",
+			drag:redrawConnections,
+			start:startDrag,
+			stop:stopDrag
+		});
+		$(newElm).draggable({
+			containment:"document",
+			cursor:"move",
+			helper:makeDot,
+			drag:drawDot,
+			stop:drawLine
+		});
+		$(newElm).draggable("option","cursorAt",{left:-15,top:-2});
+		$("body").append(newElm);
+		while (isIntersect(newElm,".draggedItem",newElm))
+			newElm.offset({top:newElm.offset().top+1,left:newElm.offset().left+1});
+		redrawLines(newElm.data("iID"),newElm.offset().top,newElm.offset().left);
+
+	}
+	function isIntersect(targetSelector,intersectorsSelector,excludeSelector) {
+		var swIsIntersect=false;
+		var elm=$(targetSelector);
+		var tAxis = elm.offset();
+		var t_x = [tAxis.left, tAxis.left + elm.outerWidth()];
+		var t_y = [tAxis.top, tAxis.top + elm.outerHeight()];
+
+		$(intersectorsSelector).not(excludeSelector).each(function() {
+			  var $this = $(this);
+			  var thisPos = $this.offset();
+			  var i_x = [thisPos.left, thisPos.left + $this.outerWidth(true)]
+			  var i_y = [thisPos.top, thisPos.top + $this.outerHeight(true)];
+
+			  if ( t_x[0] < i_x[1] && t_x[1] > i_x[0] &&
+				   t_y[0] < i_y[1] && t_y[1] > i_y[0]) {
+				 swIsIntersect=true;
+				 return false;
+			  }
+
+		});
+		return swIsIntersect;
+	}	
+	function getElementByDot(dotSelector,elementsSelector) {
+		var elm=null;
+		var dot=$(dotSelector);
+		var tAxis = dot.offset();
+		var t_x = [tAxis.left, tAxis.left + dot.outerWidth()];
+		var t_y = [tAxis.top, tAxis.top + dot.outerHeight()];
+
+		$(elementsSelector).each(function() {
+			  var $this = $(this);
+			  var thisPos = $this.offset();
+			  var i_x = [thisPos.left, thisPos.left + $this.outerWidth(true)]
+			  var i_y = [thisPos.top, thisPos.top + $this.outerHeight(true)];
+
+			  if ( t_x[0] < i_x[1] && t_x[1] > i_x[0] &&
+				   t_y[0] < i_y[1] && t_y[1] > i_y[0]) {
+				 elm=this;
+				 return false;
+			  }
+
+		});
+		return elm;
+	}	
+	function setRect(plusX,plusY){
+		$(svg).width(document.documentElement.clientWidth>$(svg).width() ? document.documentElement.clientWidth : $(svg).width() + plusX);
+		$(svg).height(document.documentElement.clientHeight>$(svg).height() ? document.documentElement.clientHeight : $(svg).height() +plusY);
+	}
+</script>
+</html>
